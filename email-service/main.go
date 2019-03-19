@@ -15,10 +15,6 @@ import (
     consulapi "github.com/hashicorp/consul/api"
 )
 
-type JwtToken struct {
-	Token string `json:"token"`
-}
-
 func registerServiceWithConsul() {
 	config := consulapi.DefaultConfig()
 	consul, err := consulapi.NewClient(config)
@@ -81,7 +77,7 @@ func connectToDatabase() *sql.DB {
 func CreateICSfromDBbyID(w http.ResponseWriter, r *http.Request) {
     r.ParseForm()
     email := r.FormValue("email") // Data from the form        
-    if event, err1 := mydb.GetEventByID(email); err1 == nil {
+    if event, err1 := mydb.CreateICS(email); err1 == nil {
         log.Printf("%v\n", event)
         return
     } else {

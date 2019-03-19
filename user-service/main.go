@@ -65,6 +65,7 @@ func main() {
     http.HandleFunc("/Signup",Signup)
     http.HandleFunc("/ChangePassword",ChangePassword)
     http.HandleFunc("/login",login)
+    http.HandleFunc("/CreateTable",CreateTable)
 	fmt.Printf("user service is up on port: %s", port())
 	http.ListenAndServe(port(), nil)
     defer db.Close()
@@ -166,4 +167,8 @@ func login(w http.ResponseWriter, r *http.Request) {
     } else {
         log.Printf("Failed to log user in with email: %v %v, error was: %v\n", email,pwd, err)
     }
+}
+
+func CreateTable(w http.ResponseWriter, r *http.Request) {
+    mydb.CreateTable()
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type Event struct {
-	id     string   
+	email     string   
 	subject  string	
 	StartDateTime string		
 	EndDateTime  string	
@@ -16,29 +16,14 @@ type Event struct {
 	description string
 }
 
-//Insert event details into database
-func AddEvent(id,name,date,time,description,location string) (int){
-	_,err := db.Exec(`
-		INSERT INTO public."events" ("ID","SUBJECT","STARTDATETIME","ENDDATETIME","DESCRIPTION","LOCATION")
-		VALUES ($1,$2,$3,$4,$5,$6)`,id,name,date,time,description,location)
-	
-	if err != nil {
-		log.Printf("Insertion Error : %v",err)
-		return 1
-	}else{
-		log.Printf("Added successfully")
-		return 0
-	}
-	
-}
 //Create an ics file from the event details in the database
-func GetEventByID(id string) (*Event, error) {
+func CreateICS(email string) (*Event, error) {
 	result := &Event{}
-	row := db.QueryRow(`
-		SELECT "ID","SUBJECT","STARTDATETIME","ENDDATETIME","DESCRIPTION","LOCATION"
+	row := db.QueryRow(` 
+		SELECT "EMAIL","SUBJECT","STARTDATETIME","ENDDATETIME","DESCRIPTION","LOCATION"
 		FROM public."events"
-		WHERE "ID" = $1`, id)
-	err := row.Scan(&result.id, &result.subject, &result.StartDateTime,&result.EndDateTime,&result.description,&result.location)
+		WHERE "EMAIL" = $1`, email)
+	err := row.Scan(&result.email, &result.subject, &result.StartDateTime,&result.EndDateTime,&result.description,&result.location)
 	if err!=nil{
 		log.Printf("Error:%v",err)
 	}else{

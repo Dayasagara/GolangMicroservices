@@ -14,8 +14,7 @@ type User struct {
 	username string  
 }
 
-func CreateTable() (error,error) {
-	flag := 0
+func CreateTable() {
 	_,err1 := db.Exec(`
 	CREATE TABLE public."user"
 (
@@ -26,26 +25,9 @@ func CreateTable() (error,error) {
 )`)
 	if err1 != nil {
 		log.Printf("Creation Error : %v",err1)
-		flag++
-	}else{
+		}else{
 		log.Printf("Table Created successfully") 
 	}
-	_,err := db.Exec(`
-	CREATE TABLE public."events"(
-    "ID" text COLLATE pg_catalog."default" NOT NULL,
-    "SUBJECT" text COLLATE pg_catalog."default" NOT NULL,
-    "STARTDATETIME" timestamp with time zone,
-    "ENDDATETIME" timestamp with time zone,
-    "DESCRIPTION" text COLLATE pg_catalog."default",
-    "LOCATION" text COLLATE pg_catalog."default"
-)`)
-	if err != nil {
-		log.Printf("Creation Error : %v",err)
-		flag++
-	}else{
-		log.Printf("Table Created successfully") 
-	}
-	return err1,err
 }
 
 //List Users

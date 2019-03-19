@@ -15,10 +15,6 @@ import (
     consulapi "github.com/hashicorp/consul/api"
 )
 
-type JwtToken struct {
-	Token string `json:"token"`
-}
-
 func registerServiceWithConsul() {
 	config := consulapi.DefaultConfig()
 	consul, err := consulapi.NewClient(config)
@@ -60,6 +56,7 @@ func main() {
     registerServiceWithConsul()
     db := connectToDatabase()
     http.HandleFunc("/AddEvent",AddEvent)
+    http.HandleFunc("/CreateTable",CreateTable)
 	fmt.Printf("user service is up on port: %s", port())
 	http.ListenAndServe(port(), nil)
     defer db.Close()
@@ -80,27 +77,31 @@ func connectToDatabase() *sql.DB {
 //Inserting events to database
 func AddEvent(w http.ResponseWriter, r *http.Request) {
     r.ParseForm()
-    id := r.FormValue("id")     // Data from the form
+    email := r.FormValue("email")     // Data from the form
     subject := r.FormValue("subject")   // Data from the form
     description := r.FormValue("description")
     location := r.FormValue("location")
     StartDateTime := r.FormValue("StartDateTime")   // Data from the form
     EndDateTime := r.FormValue("EndDateTime") // Data from the form
 
-    idCheck := helper.IsEmpty(id)  //Check if the data is empty to prevent inserting them
+    emailCheck := helper.IsEmpty(email)  //Check if the data is empty to prevent inserting them
     subjectCheck := helper.IsEmpty(subject)
     StartDateTimeCheck := helper.IsEmpty(StartDateTime)
     EndDateTimeCheck := helper.IsEmpty(EndDateTime)
     descriptionCheck := helper.IsEmpty(description)
     locationCheck := helper.IsEmpty(location)
 
-    if idCheck || subjectCheck || StartDateTimeCheck || EndDateTimeCheck || descriptionCheck || locationCheck{
+    if emailCheck || subjectCheck || StartDateTimeCheck || EndDateTimeCheck || descriptionCheck || locationCheck{
         fmt.Fprintf(w, "There is empty data.")
         return
     }
 
-    status:=mydb.AddEvent(id,subject,StartDateTime,EndDateTime,description,location)
+    status:=mydb.AddEvent(email,subject,StartDateTime,EndDateTime,description,location)
     if status==0{
         fmt.Fprintf(w,"Added Successfully")
     }        
+}
+
+func CreateTable(w http.ResponseWriter, r *http.Request) {
+    mydb.CreateTable()
 }
