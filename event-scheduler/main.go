@@ -12,8 +12,21 @@ import (
     "os"
     "strconv"
     "strings"
+    "encoding/json"
     consulapi "github.com/hashicorp/consul/api"
 )
+
+type event struct{
+    Email string `json:"email"`
+    Subject string `json:"subject"`
+    Description string `json:"description"`
+    Location string `json:"location"`
+    StartDateTime string `json:"StartDateTime"`
+    EndDateTime string `json:"EndDateTime"`
+} 
+
+var mail, sub, desc, loc,sDate, eDate string
+
 
 func registerServiceWithConsul() {
 	config := consulapi.DefaultConfig()
@@ -55,8 +68,9 @@ func hostname() string {
 func main() {
     registerServiceWithConsul()
     db := connectToDatabase()
+    http.HandleFunc("/CreateTable", CreateTable)
     http.HandleFunc("/AddEvent",AddEvent)
-    http.HandleFunc("/CreateTable",CreateTable)
+    http.HandleFunc("/ListEvent",ListEvent)
 	fmt.Printf("user service is up on port: %s", port())
 	http.ListenAndServe(port(), nil)
     defer db.Close()
@@ -75,9 +89,9 @@ func connectToDatabase() *sql.DB {
 }
 
 //Inserting events to database
-func AddEvent(w http.ResponseWriter, r *http.Request) {
+func AddEvent(w http.ResponseWriter, r *http.Request)  {
     r.ParseForm()
-    email := r.FormValue("email")     // Data from the form
+    email:= r.FormValue("email")     // Data from the form
     subject := r.FormValue("subject")   // Data from the form
     description := r.FormValue("description")
     location := r.FormValue("location")
@@ -96,10 +110,45 @@ func AddEvent(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    e := event{
+        Email: email,
+        Subject: subject,
+        Description: description,
+        Location: location,
+        StartDateTime: StartDateTime,
+        EndDateTime: EndDateTime,
+    }
+    //fmt.Println(e)
     status:=mydb.AddEvent(email,subject,StartDateTime,EndDateTime,description,location)
     if status==0{
-        fmt.Fprintf(w,"Added Successfully")
-    }        
+        fmt.Fprintln(w,e)
+        w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(&e)
+    
+        mail=email
+        sub=subject
+        desc=description
+        loc=location
+        sDate=StartDateTime
+        eDate=EndDateTime
+        
+    }     
+    
+}
+
+func ListEvent(w http.ResponseWriter, r *http.Request){
+    
+    list:=event{
+        Email: mail,
+        Subject: sub,
+        Description: desc,
+        Location: loc,
+        StartDateTime: sDate,
+        EndDateTime: eDate,
+    }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(&list)
+    
 }
 
 func CreateTable(w http.ResponseWriter, r *http.Request) {

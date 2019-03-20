@@ -3,17 +3,29 @@ package main
 import (
     "fmt"
     "net/http"
-	"database/sql"
     "log"
-	config "./config" 
-    mydb "./mydb"
-    ms "./email"
+	//ms "./email"
 	_ "github.com/lib/pq"
     "os"
+    "encoding/json"
     "strconv"
     "strings"
     consulapi "github.com/hashicorp/consul/api"
 )
+
+type event struct{
+    Email string `json:"email"`
+    Subject string `json:"subject"`
+    Description string `json:"description"`
+    Location string `json:"location"`
+    StartDateTime string `json:"StartDateTime"`
+    EndDateTime string `json:"EndDateTime"`
+}
+
+
+type JwtToken struct {
+	Token string `json:"token"`
+}
 
 func registerServiceWithConsul() {
 	config := consulapi.DefaultConfig()
@@ -54,43 +66,82 @@ func hostname() string {
 
 func main() {
     registerServiceWithConsul()
-    db := connectToDatabase()
-    http.HandleFunc("/CreateICSfromDBbyID",CreateICSfromDBbyID)
 	fmt.Printf("user service is up on port: %s", port())
+	http.HandleFunc("/GetEvent",GetEvent)
 	http.ListenAndServe(port(), nil)
-    defer db.Close()
-}
-//Database connection
-func connectToDatabase() *sql.DB {
-    dbinfo := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-    config.HOST, config.DB_USER, config.DB_PASSWORD, config.DB_NAME, config.PORT)
-    db, err := sql.Open("postgres", dbinfo)
-    if err != nil {
-        fmt.Println(err)
-    }
-    log.Printf("Postgres started at %s PORT", config.PORT)
-    mydb.SetDatabase(db)		
-    return db
+    
 }
 
-//Create an ics file from the event information in database based on ID
-func CreateICSfromDBbyID(w http.ResponseWriter, r *http.Request) {
-    r.ParseForm()
-    email := r.FormValue("email") // Data from the form        
-    if event, err1 := mydb.CreateICS(email); err1 == nil {
-        log.Printf("%v\n", event)
-        return
-    } else {
-        log.Printf("error was: %v\n",err1)
-    }        
-}
+
 
 //Sending an ICS as email
-func SendEmail(w http.ResponseWriter, r *http.Request) {
+
+func lookupServiceWithConsul(serviceName string) (string, error) {
+	config := consulapi.DefaultConfig()
+	consul, err := consulapi.NewClient(config)
+	if err != nil {
+		return "", err
+	}
+	services, err := consul.Agent().Services()
+	if err != nil {
+		return "", err
+	}
+	srvc := services["event-service"]
+	address := srvc.Address
+	port := srvc.Port
+	return fmt.Sprintf("http://%s:%v", address, port), nil
+}
+
+func GetEvent(w http.ResponseWriter, r *http.Request) {
+	e:= event{}
+	url, err := lookupServiceWithConsul("email-service")
+	fmt.Println("URL: ", url)
+	if err != nil {
+		fmt.Fprintf(w, "Error. %s", err)
+		return
+	}
+	client := &http.Client{}
+	resp, err := client.Get(url + "/ListEvent")
+	if err != nil {
+		fmt.Fprintf(w, "Error. %s", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+		fmt.Fprintf(w, "Error. %s", err)
+		return
+	}
+
+	fmt.Printf("Check")
+	fmt.Fprintln(w,e)
+
     r.ParseForm()
-    email := r.FormValue("email")
+    email:=e.Email
     name := r.FormValue("name")
     subject := r.FormValue("subject")
     message := r.FormValue("message")
-    ms.SendEmail(name,email,subject,message)
+    fmt.Println(email,name,subject,message)
+    //ms.SendEmail(name,email,subject,message)
+
+    var file, err1 = os.Create(`calendar1.ics`)
+    defer file.Close()
+    fmt.Println(e.StartDateTime)
+    fmt.Fprintf(file,"BEGIN:VCALENDAR\nMETHOD:PUBLISH\nVERSION:2.0\nPRODID:-//Company Name//Product//Language\nBEGIN:VEVENT")
+    fmt.Fprintf(file,"\nSUMMARY:")
+
+    fmt.Fprintf(file,e.Subject)
+    fmt.Fprintf(file,"\nDTSTART:")
+    fmt.Fprintf(file,e.StartDateTime)
+    fmt.Fprintf(file,"\nDTEND:")
+    fmt.Fprintf(file,e.EndDateTime)
+    fmt.Fprintf(file,"\nDESCRIPTION:")
+    fmt.Fprintf(file,e.Description)
+    fmt.Fprintf(file,"\nLOCATION:")
+    fmt.Fprintf(file,e.Location)
+    fmt.Fprintf(file,"\nEND:VEVENT\nEND:VCALENDAR")   
+    if err1 != nil {
+        fmt.Println(err1)
+    }
+
 }
