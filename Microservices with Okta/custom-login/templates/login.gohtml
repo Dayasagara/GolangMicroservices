@@ -1,0 +1,25 @@
+{{template "header" .}}
+
+<div id="sign-in-widget"></div>
+<script type="text/javascript">
+  var config = {};
+  config.baseUrl = "{{ .BaseUrl }}";
+  config.clientId = "{{ .ClientId }}";
+  config.redirectUri = "http://localhost:8080/authorization-code/callback";
+  //config.redirectUri = "http://localhost:9000/Hello";
+  config.authParams = {
+    issuer: "{{ .Issuer }}",
+    responseType: 'code',
+    state: "{{ .State }}" || false,
+    display: 'page',
+    scope: ['openid', 'profile', 'email'],
+    nonce: '{{ .Nonce }}',
+  };
+  new OktaSignIn(config).renderEl(
+    { el: '#sign-in-widget' },
+    function (res) {
+    }
+  );
+</script>
+<a href="https://dev-258023.okta.com/signin/register">Signup</a>
+{{template "footer"}}
