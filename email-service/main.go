@@ -6,6 +6,7 @@ import (
     "log"
 	//ms "./email"
 	_ "github.com/lib/pq"
+	verify "VerifyJWT"
     "os"
     "encoding/json"
     "strconv"
@@ -93,6 +94,9 @@ func lookupServiceWithConsul(serviceName string) (string, error) {
 }
 
 func GetEvent(w http.ResponseWriter, r *http.Request) {
+	res,err := verify.VerifyHandler(r)
+    fmt.Println(res)
+    if err == nil {
 	e:= event{}
 	url, err := lookupServiceWithConsul("email-service")
 	fmt.Println("URL: ", url)
@@ -143,5 +147,7 @@ func GetEvent(w http.ResponseWriter, r *http.Request) {
     if err1 != nil {
         fmt.Println(err1)
     }
-
+	}else{
+		fmt.Println(err)
+	}
 }

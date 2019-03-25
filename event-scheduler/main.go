@@ -5,9 +5,10 @@ import (
     "net/http"
 	"database/sql"
     "log"
-	config "./config"
-	mydb "./mydb"
-	helper "./helpers"
+	config "Microservices/event-scheduler/config"
+	mydb "Microservices/event-scheduler/mydb"
+    helper "Microservices/event-scheduler/helpers"
+    verify "VerifyJWT" 
 	_ "github.com/lib/pq"
     "os"
     "strconv"
@@ -90,6 +91,9 @@ func connectToDatabase() *sql.DB {
 
 //Inserting events to database
 func AddEvent(w http.ResponseWriter, r *http.Request)  {
+    res,err := verify.VerifyHandler(r)
+    fmt.Println(res)
+    if err == nil {
     r.ParseForm()
     email:= r.FormValue("email")     // Data from the form
     subject := r.FormValue("subject")   // Data from the form
@@ -132,7 +136,10 @@ func AddEvent(w http.ResponseWriter, r *http.Request)  {
         sDate=StartDateTime
         eDate=EndDateTime
         
-    }     
+    }   
+    }else{
+        fmt.Println(err)
+    }  
     
 }
 
